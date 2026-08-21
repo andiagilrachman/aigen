@@ -196,8 +196,62 @@ Kalau tadi impor ke MariaDB kosong, belum ada user sama sekali, jadi klik
 
 > Yang akan Anda lihat: sidebar berisi 10 menu, Screener yang bisa dijalankan,
 > tapi **tabel hasilnya kosong**. Itu wajar — `seed.sql` hanya mengisi
-> konfigurasi (menu, tema, tarif kredit), bukan data emiten. Mengisi data saham
-> butuh job sinkronisasi vendor yang belum dikerjakan (lihat bagian akhir).
+> konfigurasi (menu, tema, tarif kredit), bukan data emiten. Lanjut ke langkah 6
+> untuk mengisinya.
+
+---
+
+## 6. Isi data emiten
+
+Setelah langkah 2, database Anda berisi konfigurasi tapi **belum ada satu emiten
+pun**, jadi Screener tidak menampilkan apa-apa. Ada dua cara mengisinya.
+
+### Cara A — data contoh (cepat, tanpa API key)
+
+```bash
+cd backend
+php tools/seed-demo-data.php
+```
+
+Mengisi 6 emiten (BBCA, ICBP, ANTM, TLKM, PTBA, GOTO) lengkap dengan laporan
+keuangan, pemegang saham, dan akun demo **`demo@aigen.test` / `demo1234`**
+berisi 100 kredit.
+
+Jalan di MariaDB maupun SQLite — mengikuti `.env` Anda. Aman diulang: emiten
+dicocokkan lewat kodenya, jadi tidak menggandakan baris. Tambahkan `--fresh`
+untuk mengosongkan data emiten lama lebih dulu.
+
+GOTO sengaja dibuat rugi dengan `per` dan `graham_number` kosong — berguna untuk
+memastikan tampilan tidak berantakan saat metrik tidak tersedia.
+
+### Cara B — data sungguhan dari vendor
+
+Butuh API key Invezgo. Simpan dulu ke tabel `data_vendors` (terenkripsi memakai
+`APP_KEY` yang tadi Anda buat):
+
+```bash
+php tools/set-vendor-key.php Invezgo API_KEY_ANDA
+```
+
+Lalu tarik datanya:
+
+```bash
+php jobs/sync_stocks.php          # master emiten + sektor
+php jobs/sync_fundamental.php     # rasio dan skor fundamental
+```
+
+Urutannya penting — `sync_fundamental` hanya memproses emiten yang sudah ada di
+tabel `stocks`.
+
+Untuk seluruh emiten IHSG, tahap kedua memakan waktu dan kuota vendor. Potong
+jadi beberapa bagian bila perlu:
+
+```bash
+php jobs/sync_fundamental.php --batch=50 --offset=0
+```
+
+Kalau job berhenti di tengah jalan, ia mencetak perintah persis untuk
+melanjutkan. Detail selengkapnya ada di `backend/README.md`.
 
 ---
 
@@ -264,7 +318,7 @@ Mode ini untuk pengembangan saja. Target produksi tetap MariaDB.
 ## Menjalankan test
 
 ```bash
-cd backend  && php tests/run.php     # 51 assertion
+cd backend  && php tests/run.php     # 86 assertion
 cd frontend && npm run verify        # typecheck + build + 28 pemeriksaan UI
 ```
 
@@ -311,8 +365,6 @@ Cookie sesi tidak tersimpan. Saat dev, pastikan Anda mengakses lewat
 Rilis ini sengaja dibatasi pada satu alur: **Login → Sidebar → Screener →
 Detail emiten**. Belum dikerjakan:
 
-- **Job sinkronisasi data vendor** — karena itu tabel emiten masih kosong di
-  database baru. Ini yang membuat Screener belum menampilkan hasil apa pun.
 - Pembayaran Midtrans dan pembelian kredit
 - Panel admin
 - Watchlist
