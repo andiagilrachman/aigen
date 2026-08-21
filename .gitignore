@@ -1,3 +1,11 @@
+# Rahasia — jangan pernah masuk Git
 backend/.env
-backend/storage/logs/*.log
+
+# Artefak runtime
+backend/storage/logs/*
 backend/storage/cache/*
+!backend/storage/logs/.gitkeep
+!backend/storage/cache/.gitkeep
+
+# Dependensi
+node_modules/

@@ -1,0 +1,12 @@
+# Root backend BUKAN document root. Berkas di sini (config, src, .env, storage)
+# tidak boleh bisa diakses lewat HTTP. Arahkan document root ke folder public/.
+#
+# Aturan ini hanya jaring pengaman untuk instalasi XAMPP yang terlanjur
+# menaruh seluruh folder di bawah htdocs.
+
+RewriteEngine On
+RewriteRule ^(?!public/) - [F,L]
+
+<FilesMatch "\.(env|sql|log|md)$">
+    Require all denied
+</FilesMatch>

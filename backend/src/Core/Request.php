@@ -14,6 +14,9 @@ final class Request
     private array $query;
     private array $params = [];
 
+    /** User terautentikasi, diisi oleh middleware auth. */
+    private ?array $user = null;
+
     public function __construct(
         public readonly string $method,
         public readonly string $path,
@@ -58,6 +61,23 @@ final class Request
     public function setParams(array $params): void
     {
         $this->params = $params;
+    }
+
+    /** Diisi middleware auth supaya handler tidak perlu query ulang. */
+    public function setUser(?array $user): void
+    {
+        $this->user = $user;
+    }
+
+    public function user(): ?array
+    {
+        return $this->user;
+    }
+
+    /** Id user yang sedang login. Hanya dipanggil di rute ber-middleware auth. */
+    public function userId(): int
+    {
+        return (int) ($this->user['id'] ?? 0);
     }
 
     public function param(string $key, ?string $default = null): ?string

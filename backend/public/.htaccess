@@ -1,0 +1,14 @@
+# Arahkan semua permintaan ke front controller.
+# Berkas dan direktori yang benar-benar ada tetap dilayani langsung.
+
+RewriteEngine On
+
+# Jangan tulis ulang bila berkas atau folder memang ada
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+RewriteRule ^ index.php [QSA,L]
+
+# Jangan bocorkan versi PHP
+Header unset X-Powered-By
