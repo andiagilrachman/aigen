@@ -51,7 +51,7 @@ TestCase::flushCaches();
 
 $exitCode = 0;
 
-foreach (['ConfigTest', 'CreditTest', 'AuthTest', 'ScreenerTest'] as $suite) {
+foreach (['ConfigTest', 'CreditTest', 'AuthTest', 'ScreenerTest', 'VendorTest'] as $suite) {
     $file = __DIR__ . '/' . $suite . '.php';
     if (is_file($file)) {
         require $file;

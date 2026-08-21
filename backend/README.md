@@ -118,13 +118,79 @@ Kredit dipotong **setelah** pekerjaan dipastikan bisa dilakukan — misalnya
 `/stocks/{symbol}` memeriksa keberadaan emiten lebih dulu, karena memungut biaya
 untuk kode yang tidak ada sama saja mengambil kredit tanpa imbalan.
 
+## Job sinkronisasi data
+
+Data emiten diambil dari vendor (Invezgo) lewat skrip CLI di `jobs/`. **Hanya
+job yang boleh memanggil vendor** — request pengguna tidak pernah menyentuh API
+luar, supaya halaman tidak ikut lambat/gagal saat vendor bermasalah.
+
+```bash
+php jobs/sync_stocks.php                    # master emiten + sektor
+php jobs/sync_fundamental.php               # rasio, skor, (opsional) laporan
+php jobs/recalculate_scores.php             # hitung ulang skor, tanpa vendor
+```
+
+Urutannya penting: `sync_fundamental` hanya memproses emiten yang sudah ada di
+tabel `stocks`, jadi `sync_stocks` dijalankan lebih dulu.
+
+### Argumen yang sering dipakai
+
+| Argumen | Berlaku di | Guna |
+|---|---|---|
+| `--dry-run` | semua | tampilkan rencana, jangan tulis apa pun |
+| `--symbol=BBCA` | sync_fundamental | proses satu emiten saja |
+| `--batch=50 --offset=0` | sync_fundamental | potong pekerjaan jadi beberapa bagian |
+| `--with-statements` | sync_fundamental | ikut ambil laporan keuangan (BS/IS/CF) |
+| `--all` | recalculate_scores | semua tanggal, bukan snapshot terbaru saja |
+| `--max-seconds=0` | semua | `0` = tanpa batas waktu (bawaan CLI) |
+
+### Aman diulang
+
+Semua job **idempoten**: menjalankan dua kali tidak menggandakan baris. Emiten
+di-upsert, snapshot ditimpa per `(stock_id, snapshot_date)`, dan riwayat laporan
+dihapus per `(emiten, jenis, tahun, periode)` sebelum ditulis ulang — karena
+tabel `indicator_history_fundamental` sengaja tidak punya unique key.
+
+### Kalau vendor bermasalah
+
+`sync_fundamental` berhenti sendiri setelah 5 kegagalan berturut-turut, dan
+langsung berhenti untuk masalah kredensial (401/403) atau kuota harian yang
+habis — dua kondisi yang tidak akan membaik dengan mencoba emiten berikutnya.
+
+Saat berhenti, job mencetak perintah untuk melanjutkan:
+
+```
+Lanjutkan dengan:
+  php jobs/sync_fundamental.php --offset=12 --batch=100
+```
+
+Offset itu menunjuk ke **awal rentetan kegagalan**, bukan tempat job berhenti,
+supaya emiten yang barusan gagal ikut dicoba lagi. Kalau memakai posisi terakhir,
+kegagalan berubah jadi lubang data yang tidak kelihatan.
+
+Kuota harian vendor dicatat di `vendor_usage_log` dan hanya bertambah kalau
+permintaan benar-benar sampai ke vendor — kegagalan koneksi tidak ikut menghabiskan
+jatah.
+
+### Skor fundamental
+
+Skor dihitung dari `formula_config` (bobot + ambang `good`/`bad` per metrik),
+bukan dari angka yang ditanam di kode. Ubah bobot di tabel itu, lalu jalankan
+`recalculate_scores.php` untuk menerapkannya ke snapshot yang sudah tersimpan —
+tanpa perlu menarik ulang data dari vendor.
+
+Nilai `0` dari vendor pada DER/PER/PBV/CR/QR diperlakukan sebagai **data tidak
+tersedia**, bukan nol sungguhan, dan disimpan sebagai NULL. Metrik yang NULL
+tidak ikut dihitung, dan jumlah metrik terpakai ditampilkan sebagai `(5/7 metrik)`
+agar skor dengan data tipis mudah dikenali.
+
 ## Pengujian
 
 ```bash
 php tests/run.php
 ```
 
-51 assertion, memakai SQLite in-memory. `tests/TestSchema.php` menerjemahkan
+86 assertion, memakai SQLite in-memory. `tests/TestSchema.php` menerjemahkan
 `database/schema.sql` yang asli ke dialek SQLite, sehingga test menguji **skema
 yang sebenarnya dipakai produksi** — bukan skema tiruan yang bisa menyimpang
 diam-diam saat kolom berubah.
