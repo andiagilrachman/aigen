@@ -9,3 +9,10 @@ backend/storage/cache/*
 
 # Dependensi
 node_modules/
+
+# Database pratinjau lokal — dihasilkan tools/setup-preview-db.php
+backend/storage/*.sqlite
+
+# Artefak build frontend
+frontend/dist/
+frontend/dist-smoke/

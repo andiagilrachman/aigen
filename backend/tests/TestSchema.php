@@ -16,15 +16,19 @@ use PDO;
  */
 final class TestSchema
 {
-    public static function bootSqlite(): PDO
+    /**
+     * @param string $path ':memory:' untuk test, atau path berkas untuk
+     *                     menyiapkan database preview lokal tanpa MySQL.
+     */
+    public static function bootSqlite(string $path = ':memory:'): PDO
     {
-        $pdo = new PDO('sqlite::memory:', null, null, [
+        $pdo = new PDO('sqlite:' . $path, null, null, [
             PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
         ]);
         $pdo->exec('PRAGMA foreign_keys = ON');
 
-        Database::configure(['driver' => 'sqlite', 'path' => ':memory:']);
+        Database::configure(['driver' => 'sqlite', 'path' => $path]);
         Database::setConnection($pdo);
 
         foreach (self::statements(self::schemaPath()) as $sql) {

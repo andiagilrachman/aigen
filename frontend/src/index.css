@@ -1,0 +1,100 @@
+@import 'tailwindcss';
+
+/*
+  Warna TIDAK ditulis sebagai nilai tetap di sini. Setiap warna merujuk CSS
+  variable yang diisi saat runtime dari tabel `theme_presets` (lihat
+  ThemeContext). Dengan begitu admin bisa mengganti tema lewat database tanpa
+  menyentuh kode — inilah alasan styling inline di versi lama harus dibuang.
+*/
+@theme {
+  --color-primary: var(--aigen-primary);
+  --color-accent: var(--aigen-accent);
+  --color-canvas: var(--aigen-bg);
+  --color-surface: var(--aigen-card);
+  --color-border-soft: var(--aigen-border);
+  --color-ink: var(--aigen-text);
+  --color-ink-muted: var(--aigen-text-muted);
+
+  --radius-card: var(--aigen-radius);
+
+  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI',
+    Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+/* Nilai awal dipakai sebelum /config selesai dimuat, supaya layar pertama
+   tidak berkedip putih. Nilai ini akan segera ditimpa preset dari database. */
+:root {
+  --aigen-primary: #00e5ff;
+  --aigen-accent: #7c4dff;
+  --aigen-bg: #0a0e17;
+  --aigen-card: #111623;
+  --aigen-border: rgb(255 255 255 / 0.08);
+  --aigen-text: #e8eaed;
+  --aigen-text-muted: #8b93a7;
+  --aigen-radius: 0.75rem;
+
+  color-scheme: dark;
+}
+
+:root[data-mode='light'] {
+  --aigen-border: rgb(15 23 42 / 0.1);
+  --aigen-text: #12141c;
+  --aigen-text-muted: #5b6478;
+
+  color-scheme: light;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background-color: var(--aigen-bg);
+  color: var(--aigen-text);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Transisi halus saat pengguna berganti preset tema. */
+body,
+[data-themed] {
+  transition:
+    background-color 200ms ease,
+    border-color 200ms ease,
+    color 200ms ease;
+}
+
+::selection {
+  background-color: color-mix(in oklab, var(--aigen-primary) 30%, transparent);
+}
+
+/* Scrollbar mengikuti tema, bukan warna sistem. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in oklab, var(--aigen-text-muted) 40%, transparent)
+    transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background-color: color-mix(in oklab, var(--aigen-text-muted) 35%, transparent);
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}
